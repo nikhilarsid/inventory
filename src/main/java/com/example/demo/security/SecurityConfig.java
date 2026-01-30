@@ -1,5 +1,6 @@
-package com.example.demo.security;
+package com.example.demo.config;
 
+import com.example.demo.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-// ✅ Imports for CORS
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,16 +27,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // ✅ ADDED: Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 .authorizeHttpRequests(auth -> auth
-                        // Allow anyone to view inventory items (Browsing)
+                        // ✅ FIX: SPECIFIC RULE FIRST (Order matters!)
+                        // We must secure "my-listings" BEFORE the generic wildcard below makes everything public.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/inventory/my-listings").hasAuthority("ROLE_MERCHANT")
+
+                        // ✅ Public Access (Browsing items, checking prices)
+                        // This allows Cart Service & Customers to see inventory without login
                         .requestMatchers(HttpMethod.GET, "/api/v1/inventory/**").permitAll()
 
-                        // Only Merchants can Add/Update/Delete inventory
+                        // ✅ Merchant Write Access (Create/Update/Delete)
                         .requestMatchers(HttpMethod.POST, "/api/v1/inventory/**").hasAuthority("ROLE_MERCHANT")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/inventory/**").hasAuthority("ROLE_MERCHANT") // Added PUT just in case
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/inventory/**").hasAuthority("ROLE_MERCHANT")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/inventory/**").hasAuthority("ROLE_MERCHANT")
 
                         .anyRequest().authenticated()
@@ -47,25 +50,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ✅ ADDED: CORS Configuration Bean
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow your React Frontend Ports
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:3001"));
-
-        // Allow standard HTTP methods
+        // Allow your React Frontend ports
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://localhost:3001"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        // Allow Authorization header (for JWT) and Content-Type
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-
-        // Allow credentials (cookies/auth headers)
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Apply to all endpoints
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }

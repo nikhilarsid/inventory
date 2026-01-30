@@ -1,5 +1,6 @@
 package com.example.demo.service.impl;
-
+import java.util.List;
+import java.util.stream.Collectors;
 import com.example.demo.dto.request.InventoryRequestDto;
 import com.example.demo.dto.response.InventoryResponseDto;
 import com.example.demo.entity.InventoryItem;
@@ -37,6 +38,17 @@ public class InventoryServiceImpl implements InventoryService {
         InventoryItem entity = inventoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory item not found with id: " + id));
         return mapToResponse(entity);
+    }
+
+    @Override
+    public List<InventoryResponseDto> getInventoryByMerchant(Long merchantId) {
+        // Fetch from DB
+        List<InventoryItem> items = inventoryRepository.findByMerchantId(merchantId);
+
+        // Convert to DTOs
+        return items.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override

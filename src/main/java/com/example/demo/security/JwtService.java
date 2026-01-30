@@ -14,7 +14,6 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Ensure this matches the key in application.properties
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 

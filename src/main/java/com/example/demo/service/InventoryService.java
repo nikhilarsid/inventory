@@ -20,6 +20,8 @@ public interface InventoryService {
      */
     InventoryResponseDto getInventoryItem(Long id);
 
+    List<InventoryResponseDto> getInventoryByMerchant(Long merchantId);
+
     /**
      * Soft delete or hard delete based on requirement.
      * @param id The ID to delete.
