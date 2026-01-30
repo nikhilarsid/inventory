@@ -1,4 +1,5 @@
 package com.example.demo.service.impl;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import com.example.demo.dto.request.InventoryRequestDto;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor // Constructor Injection
+@RequiredArgsConstructor
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
@@ -21,7 +22,6 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public InventoryResponseDto createInventoryItem(InventoryRequestDto requestDto) {
-        // Business Logic: Check for duplicates
         if (inventoryRepository.existsByMerchantIdAndProductId(requestDto.getMerchantId(), requestDto.getProductId())) {
             throw new RuntimeException("Item already exists for this merchant. Use update instead.");
         }
@@ -33,19 +33,18 @@ public class InventoryServiceImpl implements InventoryService {
         return mapToResponse(savedEntity);
     }
 
+    // ✅ CHANGED: Accepts String productId instead of Long id
     @Override
-    public InventoryResponseDto getInventoryItem(Long id) {
-        InventoryItem entity = inventoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory item not found with id: " + id));
+    public InventoryResponseDto getInventoryItem(String productId) {
+        // ✅ CHANGED: Uses findByProductId instead of findById
+        InventoryItem entity = inventoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory item not found with Product ID: " + productId));
         return mapToResponse(entity);
     }
 
     @Override
     public List<InventoryResponseDto> getInventoryByMerchant(Long merchantId) {
-        // Fetch from DB
         List<InventoryItem> items = inventoryRepository.findByMerchantId(merchantId);
-
-        // Convert to DTOs
         return items.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -61,11 +60,9 @@ public class InventoryServiceImpl implements InventoryService {
         return true;
     }
 
-    // Helper method for mapping to avoid code duplication
     private InventoryResponseDto mapToResponse(InventoryItem entity) {
         InventoryResponseDto dto = new InventoryResponseDto();
         BeanUtils.copyProperties(entity, dto);
-        // Business Logic: Calculate total value
         dto.setTotalValue(Math.round(entity.getPrice() * entity.getQuantity() * 100.0) / 100.0);
         return dto;
     }

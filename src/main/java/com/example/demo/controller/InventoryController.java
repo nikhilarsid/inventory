@@ -16,32 +16,29 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/inventory") // Proper Versioning
-@RequiredArgsConstructor // Constructor Injection
+@RequestMapping("/api/v1/inventory")
+@RequiredArgsConstructor
 public class InventoryController {
 
-    // Using Interface, not Implementation
     private final InventoryService inventoryService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<InventoryResponseDto>> addInventory(@Valid @RequestBody InventoryRequestDto request) {
         InventoryResponseDto responseDto = inventoryService.createInventoryItem(request);
-
         ApiResponse<InventoryResponseDto> response = ApiResponse.success(responseDto, "Inventory item created successfully");
-
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<InventoryResponseDto> getInventory(@PathVariable Long id) {
-        InventoryResponseDto response = inventoryService.getInventoryItem(id);
+    // ✅ CHANGED: PathVariable is now String productId
+    @GetMapping("/{productId}")
+    public ResponseEntity<InventoryResponseDto> getInventory(@PathVariable String productId) {
+        InventoryResponseDto response = inventoryService.getInventoryItem(productId);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteInventory(@PathVariable Long id) {
         boolean isDeleted = inventoryService.deleteInventoryItem(id);
-
         Map<String, Object> response = java.util.Map.of(
                 "success", isDeleted,
                 "message", "Item deleted successfully"
@@ -51,12 +48,9 @@ public class InventoryController {
 
     @GetMapping("/my-listings")
     public ResponseEntity<ApiResponse<List<InventoryResponseDto>>> getMyListings() {
-        // DEBUG LOG 4: Controller Reached
         System.out.println("📍 [Controller] Entered getMyListings endpoint");
 
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        System.out.println("👤 [Controller] Principal Type: " + principal.getClass().getName());
-        System.out.println("👤 [Controller] Principal Value: " + principal);
 
         if (!(principal instanceof User)) {
             System.out.println("❌ [Controller] Principal is NOT a User object!");
